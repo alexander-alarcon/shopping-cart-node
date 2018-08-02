@@ -1,0 +1,46 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <button 
+    class="navbar-toggler" 
+    type="button" 
+    data-toggle="collapse" 
+    data-target="#navbarSupportedContent" 
+    aria-controls="navbarSupportedContent" 
+    aria-expanded="false" 
+    aria-label="Toggle navigation"
+   >
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <a class="navbar-brand" href="/">Home</a>
+    <ul class="navbar-nav">
+      <li class="nav-item active">
+        <a class="nav-link" href="/shopping-cart">
+          <i class="fas fa-shopping-cart"></i> Shopping Cart 
+          <span class="sr-only">(current)</span>
+          {{# if session.cart.totalQty }}
+            <span class="badge badge-pill badge-success">{{ session.cart.totalQty }}</span>
+          {{/if}}
+        </a>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fas fa-user"></i> User Management
+        </a>
+        {{# if login }}
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="/user/profile">User Account</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/user/logout">Logout</a>
+          </div>
+        {{ else }}
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="/user/signup">Sign Up</a>
+            <a class="dropdown-item" href="/user/signin">Sign In</a>
+          </div>
+        {{/if}}
+        
+      </li>
+    </ul>
+  </div>
+</nav>
