@@ -76,7 +76,9 @@ typings/
 .serverless
 
 # Uploads folder
-/uploads
+uploads/
 
+# Others
+dump_data/
 
 # End of https://www.gitignore.io/api/node
