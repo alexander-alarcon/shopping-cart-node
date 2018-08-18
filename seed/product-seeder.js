@@ -31,6 +31,18 @@ var products = [
     description: "Crisis Core: Final Fantasy VII is an action role-playing game developed and published by Square Enix for the PlayStation Portable. ",
     price: 29.49
   }),
+  new Product({
+    imagePath: "https://en.wikipedia.org/wiki/God_of_War:_Chains_of_Olympus#/media/File:God_of_War_Chains_of_Olympus_NA_version_front_cover.jpg",
+    title: "God of War: Chains of Olympus",
+    description: "God of War: Chains of Olympus is a third-person action-adventure video game developed by Ready at Dawn and Santa Monica Studio, and published by Sony Computer Entertainment (SCE).",
+    price: 35
+  }),
+  new Product({
+    imagePath: "https://upload.wikimedia.org/wikipedia/en/9/9a/Kingdom_Hearts_Birth_by_Sleep_Boxart.jpg",
+    title: "Kingdom Hearts Birth by Sleep",
+    description: "Kingdom Hearts Birth by Sleep is an action role-playing video game developed and published by Square Enix for the PlayStation Portable, serving as the sixth installment in the Kingdom Hearts series.",
+    price: 35,
+  })
 ];
 
 var done = 0;

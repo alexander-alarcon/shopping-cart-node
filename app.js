@@ -1,80 +1,83 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser')
-var logger = require('morgan');
-var expressHBS = require('express-handlebars');
-var mongoose = require('mongoose');
-var session = require('express-session');
-var passport = require('passport');
-var flash = require('connect-flash');
-var MongoStore = require('connect-mongo')(session);
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser')
+const logger = require('morgan');
+const mongoose = require('mongoose');
+const morgan = require('morgan');
 
-var userRouter = require('./routes/user');
-var indexRouter = require('./routes/index');
+const productRouter = require('./routes/product');
+const orderRouter = require('./routes/order');
+const indexRouter = require('./routes/index');
+const userRouter = require('./routes/user');
+ 
+const errorHandler = require('./utils/errorHandler');
 
 mongoose.connect(`mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_URL}`, {
   useNewUrlParser: true
 });
 
-require('./config/passport');
+const winstonLogger = require('./config/logger.js'); 
 
-var app = express();
+const app = express();
+ 
+app.use(morgan('dev'));
+app.use(bodyParser.json({limit:'50mb'}));
+app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
 
-// view engine setup
-app.engine('.hbs', expressHBS({
-  defaultLayout: 'layout',
-  extname: '.hbs'
-}));
-app.set('view engine', '.hbs');
-
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-//app.use(validator());
-app.use(cookieParser());
-app.use(session({
-  secret: 'mysupersecret',
-  resave: false,
-  saveUninitialized: false,
-  store: new MongoStore({
-    mongooseConnection: mongoose.connection
-  }),
-  // 180 min
-  cookie: {
-    maxAge: 180 * 60 * 1000
-  }
-}));
-app.use(flash());
-app.use(passport.initialize());
-app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(function(req, res, next) {
-  res.locals.login = req.isAuthenticated();
-  res.locals.session = req.session;
-  res.locals.success = req.flash('success');
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
+      return res.status(200).json({});
+  }
   next();
 });
 
-app.use('/user', userRouter);
+app.use('/products', productRouter);
+app.use('/orders', orderRouter);
+app.use('/users', userRouter);
 app.use('/', indexRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+app.use((req, res, next) => {
+  const error = new Error();
+  error.status = 404;
+  error.message = 'Not Found!';/*
+  next(error);*/
+  const aux = errorHandler(error);
+  winstonLogger.log("error", {
+    url: req.originalUrl,
+    method: req.method,
+    error: error
+  });
+  res.status(aux.status)
+  res.json({
+    error: {
+      message: aux.message
+    }
+  })
+  res.end();
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.use((error, req, res, next) => {
+  winstonLogger.log("error", {
+    url: req.originalUrl,
+    method: req.method,
+    error: error
+  });
+  
+  const aux = errorHandler(error);
+  res.status(aux.status);
+  res.json({
+    error:{
+      message: aux.message
+    }
+  })
 });
 
 module.exports = app;

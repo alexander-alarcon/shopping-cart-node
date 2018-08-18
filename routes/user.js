@@ -1,100 +1,140 @@
-var passport = require('passport');
-var express = require('express');
-var router = express.Router();
-var csrf = require('csurf');
+const express = require('express');
+const router = express.Router();
+//const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-var Order = require('../models/order');
-var Cart = require('../models/cart');
+const errorHandler = require('./../utils/errorHandler');
 
-var csrfProtection = csrf();
-router.use(csrfProtection);
+const User = require('../models/user');
 
-router.get('/profile', isLoggedIn, function(req, res, next){
-  Order.find({
-    user: req.user
-  }, function(err, orders) {
-    if (err) {
-      return res.write('Error!');
-    }
+router.post('/signup', (req, res, next) => {
+  User.find({ email: req.body.email })
+    .exec()
+    .then(user => {
+      if(user.length >= 1) {
+        return res.sendStatus(409);
+      } else {
+        bcryptjs.genSalt(10, (err, salt)  => {
+          bcryptjs.hash(req.body.password, salt, (err, hash) => {
+            if(err) {
+            next(err)
+          } else {
+            const user = new User({
+              email: req.body.email,
+              password: hash
+            });
+
+            user.save()
+              .then(result => {
+                return res.sendStatus(201);
+              })
+              .catch(err => next(err))
+          }
+          })
+        })
+        /*bcrypt.hash(req.body.pass, 10, (err, hash) => {
+          if(err) {
+            next(err)
+          } else {
+            const user = new User({
+              email: req.body.email,
+              password: hash
+            });
+
+            user.save()
+              .then(result => {
+                return res.sendStatus(201);
+              })
+              .catch(err => next(err))
+          }
+        })*/
+      }
+    })
+    .catch(err => next(err))
+  
+
+});
+
+router.delete('/:id', (req, res, next) => {
+  const userId = req.params.id;
+  
+  User.remove({ _id: userId })
+    .exec()
+    .then(result =>{ 
+      return res.sendStatus(200)
+    })
+    .catch(err => {
+      next(err)
+    })
+});
+
+router.get('/signup', (req, res, next) => {
+
+});
+
+router.post('/login', (req, res, next) => {
+  User.find({ email: req.body.email })
+    .exec()
+    .then(user => {
+      if(user.length < 1) {
+        return res.status(401).send({
+          message: 'Auth Failed'
+        });
+      }
+      
+      bcryptjs.compare(req.body.password, user[0].password, (err, result) => {
+        // res === true
+        if (err) {
+          return res.status(401).send({
+            message: 'Auth Failed'
+          });
+        }
+        
+        if(result) {
+          const token = jwt.sign({
+            email: user[0].email,
+            userId: user[0]._id
+          }, 
+          process.env.JWT_SECRET_KEY,
+          {
+            expiresIn: '1h'
+          }); 
+          
+          return res.status(200).send({
+            message: 'OK',
+            token: token
+          })
+        }
+        
+        return res.status(401).send({
+          message: 'Auth Failed'
+        });
+      });
     
-    var cart;
-    orders.forEach(function(order) {
-      cart = new Cart(order.cart);
-      order.items = cart.generateArray();
-    });
-    res.render('user/profile', {
-      orders: orders
-    });
-  });
+      /*bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+        if (err) {
+          return res.status(401).send({
+            message: 'Auth Failed'
+          });
+        }
+        
+        if(result) {
+          return res.status(200).send({
+            message: 'OK'
+          })
+        }
+        
+        return res.status(401).send({
+          message: 'Auth Failed'
+        });
+      })*/
+    })
+    .catch(err => next(err))
 });
 
-router.get('/logout', isLoggedIn, function(req, res, next) {
-  req.logout();
-  res.redirect('/');
-});
+router.get('/signin', (req, res, next) => {
 
-router.use('/', notLoggedIn, function(req, res, next) {
-  next();
-});
-
-router.post('/signup', passport.authenticate('local.signup', {
-  failureRedirect: '/user/signup',
-  failureFlash: true
-}), function(req, res, next) {
-  if (req.session.oldUrl) {
-    var oldUrl = req.session.oldUrl;
-    req.session.oldUrl = null;
-    res.redirect(oldUrl);
-  } else {
-    res.redirect('/user/profile');
-  }
-});
-
-router.get('/signup', function(req, res, next) {
-  var messages = req.flash('error') || [];
-  res.render('user/signup', {
-    csrfToken: req.csrfToken(),
-    messages: messages,
-    hasErrors: messages.length > 0
-  });
-});
-
-router.post('/signin', passport.authenticate('local.signin', {
-  failureRedirect: '/user/signin',
-  failureFlash: true
-}), function(req, res, next) {
-  if (req.session.oldUrl) {
-    var oldUrl = req.session.oldUrl;
-    req.session.oldUrl = null;
-    res.redirect(oldUrl);
-  } else {
-    res.redirect('/user/profile');
-  }
-});
-
-router.get('/signin', function(req, res, next) {
-  var messages = req.flash('error') || [];
-  res.render('user/signin', {
-    csrfToken: req.csrfToken(),
-    messages: messages,
-    hasErrors: messages.length > 0
-  });
 });
 
 module.exports = router;
-
-function isLoggedIn(req, res, next) {
-  if(req.isAuthenticated()) {
-    return next();
-  }
-  
-  res.redirect('/user/signin');
-}
-
-function notLoggedIn(req, res, next) {
-  if(!req.isAuthenticated()) {
-    return next();
-  }
-  
-  res.redirect('/');
-}

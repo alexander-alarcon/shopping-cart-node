@@ -12,19 +12,19 @@ router.get('/', function(req, res, next) {
   var successMsg = res.locals.success || [];
   
   Product.find(function(err, docs) {
-    var productChunks = [];
-    var chunkSize = 3;
-    
-    for (var index = 0; index < docs.length; index += chunkSize) {
-      productChunks.push(docs.slice(index, index + chunkSize));
+    if(err) {
+      return res.status(500).send({
+        message: `Error getting the data! ${err}`
+      })
     }
     
-    res.render('shop/index', { 
-      title: 'Shopping Cart',
-      products: productChunks,
-      successMsg: successMsg,
-      success: successMsg.length > 0
-    });
+    if(!docs) {
+      return res.status(404).send({
+        message: `Elements not found`
+      })  
+    }
+    
+    res.status(200).send(docs) 
   });  
 });
 
